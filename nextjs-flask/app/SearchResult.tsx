@@ -15,14 +15,15 @@ function SearchResult() {
   const [errored, setErrored] = useState(false);
   const [none, setNone] = useState(false);
   const delay = prevQuery == "" ? 1000 : 50;
+  const host = process.env.BASE_URL;
+  const port = process.env.PORT;
 
   useEffect(() => {
-    const host = process.env.NEXT_PUBLIC_HOST;
-    const port = process.env.NEXT_PUBLIC_HOST_PORT;
     setErrored(false);
     setPrevQuery(query);
     setLoading(true);
     if (query) {
+      console.log(`SEARCHRESULT: ${host}, ${port}`);
       getSearchResults({ query, length })
         .then((response) => {
           if (response.ok) {

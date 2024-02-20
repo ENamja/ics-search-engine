@@ -7,7 +7,7 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-@app.route("/api/home", methods=["GET"])
+@app.route("/api/search", methods=["GET"])
 def return_home():
     query = request.args.getlist("query")
     query_params = query[0].split(" ")
@@ -25,4 +25,4 @@ def return_home():
     })
 
 if __name__ == "__main__":
-    app.run(port=os.environ["API_PORT"])
+    app.run()
