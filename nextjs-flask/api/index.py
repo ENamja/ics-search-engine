@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import search
+import os
 
 # app instance
 app = Flask(__name__)
@@ -24,4 +25,4 @@ def return_home():
     })
 
 if __name__ == "__main__":
-    app.run(port=8080)
+    app.run(port=os.environ["API_PORT"])

@@ -26,7 +26,7 @@ function SearchBar({ query, setQuery, length, setLength }: SearchBarProps) {
         (hasSearched ? "animate-moveSearch" : "bottom-1/2 translate-y-1/2")
       }
     >
-      <form action={handleForm} method="POST">
+      <form action={handleForm} method={undefined}>
         <input
           type="search"
           placeholder="Search Here"

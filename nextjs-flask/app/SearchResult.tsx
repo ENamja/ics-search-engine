@@ -3,6 +3,7 @@
 import WebLink from "./WebLink";
 import { useState, useEffect, useContext } from "react";
 import { QueryContext, LengthContext } from "./Contexts";
+import { getSearchResults } from "./lib/api";
 
 function SearchResult() {
   const query = useContext(QueryContext);
@@ -14,14 +15,15 @@ function SearchResult() {
   const [errored, setErrored] = useState(false);
   const [none, setNone] = useState(false);
   const delay = prevQuery == "" ? 1000 : 50;
-  const host = process.env.NEXT_PUBLIC_HOST;
 
   useEffect(() => {
+    const host = process.env.NEXT_PUBLIC_HOST;
+    const port = process.env.NEXT_PUBLIC_HOST_PORT;
     setErrored(false);
     setPrevQuery(query);
     setLoading(true);
     if (query) {
-      fetch(`https://${host}/api/fetch-result?query=${query}&length=${length}`)
+      getSearchResults({ query, length })
         .then((response) => {
           if (response.ok) {
             return response.json();
