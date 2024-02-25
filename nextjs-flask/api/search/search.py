@@ -18,7 +18,7 @@ from krovetzstemmer import Stemmer
 correct_words = words.words()
 rake_nltk_var = Rake()
 
-INDEX_PATH = "public/inverted_index/"
+INDEX_PATH = "lib/inverted_index/"
 ALPHABET = string.ascii_lowercase
 STEMMER = Stemmer()
 

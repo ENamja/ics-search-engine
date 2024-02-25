@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
+const nextConfig = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
   rewrites: async () => {
     return [
       {
@@ -12,6 +13,6 @@ const nextConfig = {
     ];
   },
   reactStrictMode: true,
-};
+});
 
 module.exports = nextConfig;
