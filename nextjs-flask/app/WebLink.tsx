@@ -18,7 +18,7 @@ function WebLink({ title, href, delay }: WebLinkProps) {
       href={href}
       target="_blank"
       style={{ animationDelay: delay }}
-      className="transition-color duration-500 opacity-0 animate-fadeIn "
+      className="transition-color duration-500 opacity-0 animate-fadeIn"
     >
       <Button
         placeholder={undefined}

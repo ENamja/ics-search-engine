@@ -12,10 +12,6 @@ const nextConfig = {
     ];
   },
   reactStrictMode: true,
-  env: {
-    BASE_URL: process.env.BASE_URL,
-    PORT: process.env.PORT,
-  },
 };
 
 module.exports = nextConfig;
