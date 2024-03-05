@@ -1,25 +1,34 @@
-from redis import Redis
 from dotenv import load_dotenv
+import redis
 import os
 import json
 
-INDEX_PATH="inverted_index/"
+# Convert inverted index and store on redis db hosted on local machine
 
-load_dotenv()
+def main():
 
-r = Redis(
-  host=os.environ['REDIS_HOST'],
-  port=os.environ['REDIS_PORT'],
-  password=os.environ['REDIS_PASS'])
+  INDEX_PATH="inverted_index/"
 
-r.ping()
-print("connected to redis")
+  load_dotenv()
 
-for filename in os.listdir(INDEX_PATH):
-  with open(f"{INDEX_PATH}{filename}") as file:
-    two_dict = json.load(file)
-    for word in two_dict.keys():
-      word_dict = two_dict[word]
-      for url in word_dict.keys():
-        count, total, important, tfidf = word_dict[url]
-        r.rpush(f"{word}:{url}", count, total, important, tfidf)
+  r = redis.Redis(host="localhost", port=6379, decode_responses=True)
+
+  r.ping()
+  print("connected to redis")
+
+  counter = 0
+  for filename in os.listdir(INDEX_PATH):
+    with open(f"{INDEX_PATH}{filename}") as file:
+      print(f"file: {filename}, counter: {counter}")
+      counter += 1
+      two_dict = json.load(file)
+      for word in two_dict.keys():
+        urls = two_dict[word].keys()
+        if len(urls):
+          r.sadd(f"word:{word}", *urls)
+          for url in urls:
+            _, _, important, tfidf = two_dict[word][url]
+            r.rpush(f"metadata:{word}:{url}", important, tfidf)
+
+if __name__ == "__main__":
+  main()
