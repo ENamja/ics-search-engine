@@ -11,7 +11,7 @@ def main():
 
   load_dotenv()
 
-  r = redis.Redis(host="localhost", port=6379, decode_responses=True)
+  r = redis.Redis(host=os.environ["REDIS_HOST"], port=os.environ["REDIS_PORT"], decode_responses=True)
 
   r.ping()
   print("connected to redis")
