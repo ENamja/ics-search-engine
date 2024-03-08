@@ -1,8 +1,10 @@
 import sys
-import json
+import os
+import redis
 import string
 import time
 from collections import defaultdict
+from dotenv import load_dotenv
 
 import nltk
 nltk.download('punkt')
@@ -24,6 +26,8 @@ STEMMER = Stemmer()
 
 SEARCH_CUTOFF = 10
 
+r = None
+
 
 def zero_list():
     return [0, 0]
@@ -31,21 +35,17 @@ def zero_list():
 
 def retrieve_word_info(word):
     word = STEMMER.stem(word)
-    two_letters = word[:2]
-    file_path = INDEX_PATH + two_letters + ".json"
-    word_dict = dict()
-    with open(file_path) as json_file:
-        index_dict = json.load(json_file)
-        try:
-            word_dict = index_dict[word]
-            for (
-                key
-            ) in word_dict.keys():  # changes value to (key) --> (isImportant, tfidf)
-                word_dict[key] = [word_dict[key][2], word_dict[key][3]]
-        except KeyError:
-            pass
-    return word_dict
 
+    urls = r.smembers(f"word:{word}")
+    word_dict = dict()
+    for url in urls:
+        url = url.decode('utf-8')
+        metadata = r.lrange(f"metadata:{word}:{url}", 0, -1)
+        metadata[0] = int(metadata[0].decode('utf-8')) 
+        metadata[1] = float(metadata[1].decode('utf-8'))
+        metadata[2] = metadata[2].decode('utf-8')
+        word_dict[url] = metadata
+    return word_dict
 
 def init_words_info(args):
     temp = dict()
@@ -147,19 +147,19 @@ def sort_relevant(words_info):  # sort relevance of url by highest tfidf score
     if len(url_scores_list) < SEARCH_CUTOFF:
         words_info = get_keywords_words_info(words_info)
         print("2nd screen: " + str(list(words_info.keys())))
-        url_scores_list = calc_new_url_scores(url_scores_list, words_info)
+        url_scores_list += calc_new_url_scores(url_scores_list, words_info)
 
     # THIRD screen - autocorrect words
     if len(url_scores_list) < SEARCH_CUTOFF:
         words_info = autocorrect_words_info(words_info)
         print("3rd screen: " + str(list(words_info.keys())))
-        url_scores_list = calc_new_url_scores(url_scores_list, words_info)
+        url_scores_list += calc_new_url_scores(url_scores_list, words_info)
 
     # FOURTH screen - remove least relevant tfidf score (often misinterpreted autocorrect)
     if len(url_scores_list) < SEARCH_CUTOFF and len(words_info) > 1:
         words_info = remove_least_relevant_words_info(words_info)
         print("4th screen: " + str(list(words_info.keys())))
-        url_scores_list = calc_new_url_scores(url_scores_list, words_info)
+        url_scores_list += calc_new_url_scores(url_scores_list, words_info)
 
     return url_scores_list
 
@@ -182,6 +182,14 @@ def main(args, argc):
 if __name__ == "__main__":
     start_time = time.time()
     args = sys.argv[1:]
+
+    load_dotenv()
+
+    r = redis.Redis(host=os.environ["REDIS_HOST"], port=os.environ["REDIS_PORT"], password=os.environ["REDIS_PASS"])
+
+    r.ping()
+    print("connected to redis")
+
     main(args, len(args))
     # result = main(args, len(args))
     # with open("retrieval.txt", "a") as file:

@@ -22,8 +22,8 @@ function SearchBar({ query, setQuery, length, setLength }: SearchBarProps) {
   return (
     <div
       className={
-        "transition-all duration-500 absolute z-10 flex flex-row " +
-        (hasSearched ? "animate-moveSearch" : "bottom-1/2 translate-y-1/2")
+        "transition-all duration-1000 absolute z-10 flex flex-row " +
+        (hasSearched ? "top-24" : "top-1/2 -translate-y-1/2")
       }
     >
       <form action={handleForm} method={undefined}>

@@ -22,8 +22,8 @@ const config: Config = {
       },
       keyframes: {
         moveSearch: {
-          "0%": { bottom: "50%", translateY: "50%" },
-          "50%": { bottom: "70%", translateY: "25%" },
+          "0%": { top: "1/2", bottom: "1/2" },
+          "50%": { top: "1/4", bottom: "1/4" },
           "100%": { top: "96px", translateY: "0%" },
         },
         fadeIn: {
