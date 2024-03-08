@@ -23,11 +23,13 @@ def main():
       counter += 1
       two_dict = json.load(file)
       for word in two_dict.keys():
-        urls = two_dict[word].keys()
-        if len(urls):
-          r.sadd(f"word:{word}", *urls)
-          for url in urls:
-            _, _, important, tfidf = two_dict[word][url]
+        keys = two_dict[word].keys()
+        if len(keys):
+          for key in keys:
+            url, title = key.split(" <%split%> ", 1)
+            r.setnx(f"title:{url}", title)
+            r.sadd(f"word:{word}", url)
+            _, _, important, tfidf = two_dict[word][key]
             r.rpush(f"metadata:{word}:{url}", important, tfidf)
 
 if __name__ == "__main__":
