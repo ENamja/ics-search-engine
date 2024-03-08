@@ -43,7 +43,6 @@ def retrieve_word_info(word):
         metadata = r.lrange(f"metadata:{word}:{url}", 0, -1)
         metadata[0] = int(metadata[0].decode('utf-8')) 
         metadata[1] = float(metadata[1].decode('utf-8'))
-        metadata[2] = metadata[2].decode('utf-8')
         word_dict[url] = metadata
     return word_dict
 
@@ -164,17 +163,26 @@ def sort_relevant(words_info):  # sort relevance of url by highest tfidf score
     return url_scores_list
 
 
-def main(args, argc):
-    for i in range(argc):  # lowercase all words
+def main(args, host=None, port=None, password=None):
+    for i in range(len(args)):  # lowercase all words
         args[i] = args[i].lower()
+
+    global r
+    r = redis.Redis(host=host, port=port, password=password)
+
+    r.ping()
+    print("connected to redis")
 
     # FIRST SCREEN - remove single characters
     args = list(filter(lambda x: len(x) > 1, args))
     words_info = init_words_info(args)
 
     relevant_urls = sort_relevant(words_info)
+    for i in range(len(relevant_urls)): # add titles with urls
+        relevant_urls[i] = (relevant_urls[i], r.get(f"title:{relevant_urls[i]}").decode('utf-8'))
+
     for i, url in enumerate(relevant_urls[:SEARCH_CUTOFF]):
-        print(str(i + 1) + ": " + url)
+        print(f"{i + 1}: {url[0]}, {url[1]}")
     print(len(relevant_urls))
     return relevant_urls
 
@@ -185,12 +193,8 @@ if __name__ == "__main__":
 
     load_dotenv()
 
-    r = redis.Redis(host=os.environ["REDIS_HOST"], port=os.environ["REDIS_PORT"], password=os.environ["REDIS_PASS"])
+    main(args, host=os.environ["REDIS_HOST"], port=os.environ["REDIS_PORT"], password=os.environ["REDIS_PASS"])
 
-    r.ping()
-    print("connected to redis")
-
-    main(args, len(args))
     # result = main(args, len(args))
     # with open("retrieval.txt", "a") as file:
     #     query = " ".join(args)
