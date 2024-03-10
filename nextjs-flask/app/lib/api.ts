@@ -21,6 +21,9 @@ export async function getSearchResults({
       const index = host.indexOf(":");
       host = host.substring(0, index);
     }
+    console.log(
+      `http://${host}:${port}/api/search?query=${query}&length=${length}`
+    );
     const res = await fetch(
       `http://${host}:${port}/api/search?query=${query}&length=${length}`
     );

@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import search
 import os
 
-load_dotenv()
+load_dotenv("../..")
 
 # app instance
 app = Flask(__name__)
