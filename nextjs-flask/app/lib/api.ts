@@ -35,6 +35,7 @@ export async function getSearchResults({
     }
     throw new Error(`${res.status} ${res.statusText}`);
   } catch (error) {
+    console.log(error);
     throw new Error("Failed to fetch");
   }
 }
