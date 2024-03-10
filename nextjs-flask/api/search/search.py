@@ -146,19 +146,19 @@ def sort_relevant(words_info):  # sort relevance of url by highest tfidf score
     if len(url_scores_list) < SEARCH_CUTOFF:
         words_info = get_keywords_words_info(words_info)
         print("2nd screen: " + str(list(words_info.keys())))
-        url_scores_list += calc_new_url_scores(url_scores_list, words_info)
+        url_scores_list = calc_new_url_scores(url_scores_list, words_info)
 
     # THIRD screen - autocorrect words
     if len(url_scores_list) < SEARCH_CUTOFF:
         words_info = autocorrect_words_info(words_info)
         print("3rd screen: " + str(list(words_info.keys())))
-        url_scores_list += calc_new_url_scores(url_scores_list, words_info)
+        url_scores_list = calc_new_url_scores(url_scores_list, words_info)
 
     # FOURTH screen - remove least relevant tfidf score (often misinterpreted autocorrect)
     if len(url_scores_list) < SEARCH_CUTOFF and len(words_info) > 1:
         words_info = remove_least_relevant_words_info(words_info)
         print("4th screen: " + str(list(words_info.keys())))
-        url_scores_list += calc_new_url_scores(url_scores_list, words_info)
+        url_scores_list = calc_new_url_scores(url_scores_list, words_info)
 
     return url_scores_list
 

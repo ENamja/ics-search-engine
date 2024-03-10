@@ -1,5 +1,7 @@
 "use server";
 
+import { headers } from "next/headers";
+
 interface getSearchResultsProps {
   query: string;
   length: number;
@@ -9,12 +11,18 @@ export async function getSearchResults({
   query,
   length,
 }: getSearchResultsProps) {
-  const host = process.env.HOST;
-  const port = process.env.PORT;
+  const headersList = headers();
+  let host = headersList.get("host");
+  const port = process.env["API_PORT"];
 
   try {
+    if (host && host.includes(":")) {
+      // Getting rid of port in host if it is included
+      const index = host.indexOf(":");
+      host = host.substring(0, index);
+    }
     const res = await fetch(
-      `http://${host}:${port}/api?query=${query}&length=${length}`
+      `http://${host}:${port}/api/search?query=${query}&length=${length}`
     );
     if (res.ok) {
       const data = await res.json();
