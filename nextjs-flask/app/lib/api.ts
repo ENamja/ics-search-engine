@@ -22,10 +22,10 @@ export async function getSearchResults({
       host = host.substring(0, index);
     }
     console.log(
-      `http://${host}:${port}/api/search?query=${query}&length=${length}`
+      `http://${host}:${port}/api/python?query=${query}&length=${length}`
     );
     const res = await fetch(
-      `http://${host}:${port}/api/search?query=${query}&length=${length}`
+      `http://${host}:${port}/api/python?query=${query}&length=${length}`
     );
     if (res.ok) {
       const data = await res.json();
@@ -38,7 +38,6 @@ export async function getSearchResults({
     }
     throw new Error(`${res.status} ${res.statusText}`);
   } catch (error) {
-    console.log(error);
     throw new Error("Failed to fetch");
   }
 }

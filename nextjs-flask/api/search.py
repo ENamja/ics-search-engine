@@ -20,7 +20,6 @@ from krovetzstemmer import Stemmer
 correct_words = words.words()
 rake_nltk_var = Rake()
 
-INDEX_PATH = "inverted_index/"
 ALPHABET = string.ascii_lowercase
 STEMMER = Stemmer()
 

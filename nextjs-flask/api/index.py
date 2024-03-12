@@ -4,18 +4,24 @@ from dotenv import load_dotenv
 import search
 import os
 
-load_dotenv("../..")
+load_dotenv("..")
 
 # app instance
 app = Flask(__name__)
 CORS(app)
 
-@app.route("/api/search", methods=["GET"])
+print("loaded")
+
+@app.route("/api/python", methods=["GET"])
 def return_home():
+    print("Get request")
     query = request.args.getlist("query")
     query_params = query[0].split(" ")
     length = int(request.args.getlist("length")[0])
-    result = search.main(query_params, host=os.environ["REDIS_HOST"], port=os.environ["REDIS_PORT"], password=os.environ["REDIS_PASS"])
+    # result = search.main(query_params, host=os.environ["REDIS_HOST"], port=os.environ["REDIS_PORT"], password=os.environ["REDIS_PASS"])
+    result = []
+    ex = ("url", "title")
+    result.append(ex)
     result_dict = dict()
     removed_links = 0
     for i in range(len(result)):
