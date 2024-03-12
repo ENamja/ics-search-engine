@@ -12,7 +12,7 @@ CORS(app)
 
 print("loaded")
 
-@app.route("/api/python", methods=["GET"])
+@app.route("/api/", methods=["GET"])
 def return_home():
     print("Get request")
     query = request.args.getlist("query")

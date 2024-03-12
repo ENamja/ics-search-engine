@@ -3,7 +3,6 @@
 import WebLink from "./WebLink";
 import { useState, useEffect, useContext } from "react";
 import { QueryContext, LengthContext } from "./Contexts";
-import { getSearchResults } from "./lib/api";
 
 function SearchResult() {
   const query = useContext(QueryContext);
@@ -23,17 +22,28 @@ function SearchResult() {
     const getLinks = async () => {
       try {
         setLinkArr(Array<Array<string>>());
-        const links = await getSearchResults({ query, length });
-        setLinkArr(links);
-        setRendered(true);
-        if (links.length > 0) {
-          setNone(false);
+        const res = await fetch(`/api?query=${query}&length=${length}`);
+        if (res.ok) {
+          const data = await res.json();
+          let links = Array<Array<string>>();
+          const keys = Object.keys(data.result).length;
+          for (let i = 0; i < keys; i++) {
+            links.push(data.result[i]);
+          }
+          setLinkArr(links);
+          setRendered(true);
+          if (links.length > 0) {
+            setNone(false);
+          } else {
+            setNone(true);
+          }
         } else {
-          setNone(true);
+          setErrored(true);
+          console.log("Failed to fetch");
         }
       } catch (error) {
         setErrored(true);
-        console.log("There was an error", error);
+        console.log("Failed to fetch", error);
       }
     };
     if (query) {

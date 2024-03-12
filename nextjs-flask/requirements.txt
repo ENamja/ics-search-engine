@@ -2,6 +2,7 @@ Flask==2.2.2
 Flask-Cors==4.0.0
 KrovetzStemmer==0.8
 nltk==3.8.1
+numpy==1.26.0
 python-dotenv==1.0.1
 rake-nltk==1.0.6
 redis==5.0.2
