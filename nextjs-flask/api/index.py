@@ -10,11 +10,8 @@ load_dotenv("..")
 app = Flask(__name__)
 CORS(app)
 
-print("loaded")
-
 @app.route("/api/", methods=["GET"])
 def return_home():
-    print("Get request")
     query = request.args.getlist("query")
     query_params = query[0].split(" ")
     length = int(request.args.getlist("length")[0])
@@ -32,6 +29,10 @@ def return_home():
     return jsonify({
         "result" : result_dict
     })
+
+@app.route("/api/test")
+def test():
+    return {"message": "testing message"}
 
 if __name__ == "__main__":
     app.run()
