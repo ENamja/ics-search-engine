@@ -1,6 +1,4 @@
 /** @type {import('next').NextConfig} */
-const { loadEnvConfig } = require("@next/env");
-loadEnvConfig(".");
 const nextConfig = {
   rewrites: async () => {
     return [
@@ -13,7 +11,6 @@ const nextConfig = {
       },
     ];
   },
-  reactStrictMode: true,
 };
 
 module.exports = nextConfig;
