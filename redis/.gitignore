@@ -1,2 +1,5 @@
 # local env files
 *.env
+
+# local inverted index data structure
+/inverted_index
