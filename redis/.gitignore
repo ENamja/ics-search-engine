@@ -3,3 +3,6 @@
 
 # local inverted index data structure
 /inverted_index
+
+# dump files
+*dump.rdb
