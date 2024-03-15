@@ -22,7 +22,7 @@ function SearchResult() {
     const getLinks = async () => {
       try {
         setLinkArr(Array<Array<string>>());
-        const res = await fetch(`/api?query=${query}&length=${length}`);
+        const res = await fetch(`/api/search?query=${query}&length=${length}`);
         if (res.ok) {
           const data = await res.json();
           let links = Array<Array<string>>();
