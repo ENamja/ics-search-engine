@@ -42,14 +42,18 @@ def zero_list():
 def retrieve_word_info(word):
     word = STEMMER.stem(word)
 
+    print("before smembers")
     urls = r.smembers(f"word:{word}")
+    print("after smembers")
     word_dict = dict()
+    print(len(urls))
     for url in urls:
         url = url.decode('utf-8')
         metadata = r.lrange(f"metadata:{word}:{url}", 0, -1)
         metadata[0] = int(metadata[0].decode('utf-8')) 
         metadata[1] = float(metadata[1].decode('utf-8'))
         word_dict[url] = metadata
+    print("after loop")
     return word_dict
 
 def init_words_info(args):
@@ -176,14 +180,12 @@ def search(args, host=None, port=None, password=None):
     global r
     r = redis.Redis(host=host, port=port, password=password)
 
-    r.ping()
-    print("connected to redis")
-
     # FIRST SCREEN - remove single characters
     args = list(filter(lambda x: len(x) > 1, args))
     words_info = init_words_info(args)
 
     relevant_urls = sort_relevant(words_info)
+    print(f"LENGTH OF RELEVANT URLS: {len(relevant_urls)}")
     for i in range(len(relevant_urls)): # add titles with urls
         relevant_urls[i] = (relevant_urls[i], r.get(f"title:{relevant_urls[i]}").decode('utf-8'))
 
@@ -197,10 +199,7 @@ def return_home():
     query = request.args.getlist("query")
     query_params = query[0].split(" ")
     length = int(request.args.getlist("length")[0])
-    # result = search.main(query_params, host=os.environ["REDIS_HOST"], port=os.environ["REDIS_PORT"], password=os.environ["REDIS_PASS"])
-    result = []
-    ex = ("url", "title")
-    result.append(ex)
+    result = search(query_params, host=os.environ["REDIS_HOST"], port=os.environ["REDIS_PORT"], password=os.environ["REDIS_PASS"])
     result_dict = dict()
     removed_links = 0
     for i in range(len(result)):
