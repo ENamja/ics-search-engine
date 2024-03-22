@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from dotenv import load_dotenv
-import sys
+import asyncio
 import os
 import redis
 import string
@@ -30,7 +30,6 @@ SEARCH_CUTOFF = 10
 r = None
 
 load_dotenv("..")
-
 # app instance
 app = Flask(__name__)
 CORS(app)
@@ -38,31 +37,36 @@ CORS(app)
 def zero_list():
     return [0, 0]
 
-
-def retrieve_word_info(word):
+def retrieve_word_info(word, words_info):
     word = STEMMER.stem(word)
 
-    print("before smembers")
-    urls = r.smembers(f"word:{word}")
-    print("after smembers")
+    urls = list(r.smembers(f"word:{word}")) # Get urls for word
     word_dict = dict()
     print(len(urls))
-    for url in urls:
-        url = url.decode('utf-8')
-        metadata = r.lrange(f"metadata:{word}:{url}", 0, -1)
+    pipe = r.pipeline()
+    for i in range(len(urls)): # Process metadata through pipeline
+        urls[i] = urls[i].decode('utf-8')
+        pipe.lrange(f"metadata:{word}:{urls[i]}", 0, -1)
+    metadata_list = pipe.execute()
+    for i in range(len(urls)):
+        metadata = metadata_list[i]
+        url = urls[i]
         metadata[0] = int(metadata[0].decode('utf-8')) 
         metadata[1] = float(metadata[1].decode('utf-8'))
         word_dict[url] = metadata
-    print("after loop")
-    return word_dict
+    words_info[word] = word_dict
 
-def init_words_info(args):
-    temp = dict()
+def init_words_info(args, words_info):
     for word in args:
-        word_dict = retrieve_word_info(word)
-        temp[word] = word_dict
-    return temp
+        retrieve_word_info(word, words_info)
 
+def add_titles(relevant_urls):
+    pipe = r.pipeline()
+    for i in range(len(relevant_urls)):
+        pipe.get(f"title:{relevant_urls[i]}")
+    titles = pipe.execute()
+    for i in range(len(relevant_urls)):
+        relevant_urls[i] = (relevant_urls[i], titles[i].decode('utf-8'))
 
 def and_query(urls_dict):
     intersection_set = set()
@@ -120,7 +124,9 @@ def remove_least_relevant_words_info(words_info):
     args = list(words_info.keys())
     args.remove(least_relevant_word)
 
-    return init_words_info(args)
+    words_info = dict()
+    init_words_info(args, words_info)
+    return words_info
 
 
 def autocorrect_words_info(words_info):
@@ -135,7 +141,9 @@ def autocorrect_words_info(words_info):
         ]
         args.append(sorted(temp, key=lambda val: val[0])[0][1])
 
-    return init_words_info(args)
+    words_info = dict()
+    init_words_info(args, words_info)
+    return words_info
 
 
 def get_keywords_words_info(words_info):
@@ -144,7 +152,10 @@ def get_keywords_words_info(words_info):
     rake_nltk_var.extract_keywords_from_text(keys)
     keyword_extracted = rake_nltk_var.get_ranked_phrases()
     args = [word for keyword in keyword_extracted for word in keyword.split()]
-    return init_words_info(args)
+    
+    words_info = dict()
+    init_words_info(args, words_info)
+    return words_info
 
 
 def sort_relevant(words_info):  # sort relevance of url by highest tfidf score
@@ -172,7 +183,6 @@ def sort_relevant(words_info):  # sort relevance of url by highest tfidf score
 
     return url_scores_list
 
-
 def search(args, host=None, port=None, password=None):
     for i in range(len(args)):  # lowercase all words
         args[i] = args[i].lower()
@@ -182,12 +192,16 @@ def search(args, host=None, port=None, password=None):
 
     # FIRST SCREEN - remove single characters
     args = list(filter(lambda x: len(x) > 1, args))
-    words_info = init_words_info(args)
+    words_info = dict()
+    start_time = time.time()
+    init_words_info(args, words_info)
+    print(f"It took {time.time() - start_time} seconds to run init words info")
 
     relevant_urls = sort_relevant(words_info)
     print(f"LENGTH OF RELEVANT URLS: {len(relevant_urls)}")
-    for i in range(len(relevant_urls)): # add titles with urls
-        relevant_urls[i] = (relevant_urls[i], r.get(f"title:{relevant_urls[i]}").decode('utf-8'))
+    start_time = time.time()
+    add_titles(relevant_urls)
+    print(f"It took {time.time() - start_time} seconds to add titles")
 
     for i, url in enumerate(relevant_urls[:SEARCH_CUTOFF]):
         print(f"{i + 1}: {url[0]}, {url[1]}")
