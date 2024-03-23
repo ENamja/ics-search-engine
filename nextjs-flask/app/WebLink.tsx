@@ -22,6 +22,8 @@ function WebLink({ title, href, delay }: WebLinkProps) {
     >
       <Button
         placeholder={undefined}
+        onPointerEnterCapture={undefined}
+        onPointerLeaveCapture={undefined}
         variant="text"
         color="white"
         className="relative transition-shadow duration-200 rounded-2xl my-2 p-4 flex flex-col w-full h-full text-left hover:shadow-lg "

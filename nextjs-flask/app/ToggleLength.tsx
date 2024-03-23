@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@material-tailwind/react";
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction } from "react";
 
 interface ToggleLengthProps {
   length: number;
@@ -26,6 +26,8 @@ function ToggleLength({ length, setLength }: ToggleLengthProps) {
         color="gray"
         onClick={decrementLength}
         placeholder={undefined}
+        onPointerEnterCapture={undefined}
+        onPointerLeaveCapture={undefined}
       >
         <span>-</span>
       </Button>
@@ -36,6 +38,8 @@ function ToggleLength({ length, setLength }: ToggleLengthProps) {
         color="gray"
         onClick={incrementLength}
         placeholder={undefined}
+        onPointerEnterCapture={undefined}
+        onPointerLeaveCapture={undefined}
       >
         <span>+</span>
       </Button>
