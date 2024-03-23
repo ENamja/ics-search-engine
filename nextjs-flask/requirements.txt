@@ -1,3 +1,4 @@
+aioredis==2.0.1
 async-timeout==4.0.3
 asyncio==3.4.3
 blinker==1.7.0
@@ -13,8 +14,8 @@ MarkupSafe==2.1.5
 nltk==3.8.1
 python-dotenv==1.0.1
 rake-nltk==1.0.6
-redis==5.0.3
 regex==2023.12.25
 tqdm==4.66.2
+typing_extensions==4.10.0
 Werkzeug==3.0.1
 zipp==3.18.0
