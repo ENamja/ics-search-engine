@@ -189,10 +189,11 @@ async def sort_relevant(words_info):  # sort relevance of url by highest tfidf s
 
     return url_scores_list
 
-async def search(args, host=None, port=None, password=None):
+async def search(args):
     for i in range(len(args)):  # lowercase all words
         args[i] = args[i].lower()
 
+    global pool
     pool = aioredis.ConnectionPool.from_url(os.environ["REDIS_URL"])
 
     # FIRST SCREEN - remove single characters
@@ -213,7 +214,7 @@ def return_home():
     query = request.args.getlist("query")
     query_params = query[0].split(" ")
     length = int(request.args.getlist("length")[0])
-    result = asyncio.run(search(query_params, host=os.environ["REDIS_HOST"], port=os.environ["REDIS_PORT"], password=os.environ["REDIS_PASS"]))
+    result = asyncio.run(search(query_params))
     result_dict = dict()
     removed_links = 0
     for i in range(len(result)):
