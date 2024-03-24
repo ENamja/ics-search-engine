@@ -6,9 +6,6 @@
 .pnp.js
 /env
 
-# temp
-/tmp
-
 # testing
 /coverage
 
