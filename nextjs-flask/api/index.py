@@ -18,6 +18,8 @@ from nltk.corpus import words
 from rake_nltk import Rake
 from krovetzstemmer import Stemmer
 
+nltk.data.path.append("/tmp/nltk_data")
+
 correct_words = words.words()
 rake_nltk_var = Rake()
 
