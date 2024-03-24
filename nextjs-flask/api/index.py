@@ -8,9 +8,9 @@ import string
 from collections import defaultdict
 
 import nltk
-nltk.download('punkt', download_dir="./tmp/nltk_data")
-nltk.download('words', download_dir="./tmp/nltk_data")
-nltk.download('stopwords', download_dir="./tmp/nltk_data")
+nltk.download('punkt', download_dir="/tmp/nltk_data")
+nltk.download('words', download_dir="/tmp/nltk_data")
+nltk.download('stopwords', download_dir="/tmp/nltk_data")
 from nltk.metrics.distance import jaccard_distance
 from nltk.util import ngrams
 
