@@ -29,6 +29,7 @@ STEMMER = Stemmer()
 SEARCH_CUTOFF = 10
 
 pool = None
+loop = asyncio.get_event_loop()
 
 load_dotenv("..")
 
@@ -214,7 +215,7 @@ def return_home():
     query = request.args.getlist("query")
     query_params = query[0].split(" ")
     length = int(request.args.getlist("length")[0])
-    result = asyncio.run(search(query_params))
+    result = loop.run_until_complete(search(query_params))
     result_dict = dict()
     removed_links = 0
     for i in range(len(result)):
