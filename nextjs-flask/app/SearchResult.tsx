@@ -70,9 +70,9 @@ function SearchResult() {
               </>
             );
           })}
-          {loading && !errored && <p>Loading...</p>}
         </div>
       )}
+      {loading && !errored && <p>Loading...</p>}
     </div>
   );
 }
