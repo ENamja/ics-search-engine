@@ -5,6 +5,7 @@ import aioredis
 import asyncio
 import os
 import string
+import time
 from collections import defaultdict
 
 import nltk
@@ -51,7 +52,9 @@ async def retrieve_word_info(word, words_info):
     for i in range(len(urls)): # Process metadata through pipeline
         urls[i] = urls[i].decode('utf-8')
         pipe.lrange(f"metadata:{word}:{urls[i]}", 0, -1)
+    start = time.time()
     metadata_list = await pipe.execute()
+    print(f"It took {time.time() - start} seconds to run pipe function in retrive_word_info for word: {word}")
     for i in range(len(urls)):
         metadata = metadata_list[i]
         url = urls[i]
@@ -200,10 +203,16 @@ async def search(args):
     # FIRST SCREEN - remove single characters
     args = list(filter(lambda x: len(x) > 1, args))
     words_info = dict()
+    start = time.time()
     await init_words_info(args, words_info)
+    print(f"It took {time.time() - start} seconds to run init_words_info function in search")
 
+    start = time.time()
     relevant_urls = await sort_relevant(words_info)
+    print(f"It took {time.time() - start} seconds to run sort_relevant function in search")
+    start = time.time()
     await add_titles(relevant_urls)
+    print(f"It took {time.time() - start} seconds to run add_titles function in search")
 
     for i, url in enumerate(relevant_urls[:SEARCH_CUTOFF]):
         print(f"{i + 1}: {url[0]}, {url[1]}")
@@ -215,7 +224,9 @@ def return_home():
     query = request.args.getlist("query")
     query_params = query[0].split(" ")
     length = int(request.args.getlist("length")[0])
+    start = time.time()
     result = loop.run_until_complete(search(query_params))
+    print(f"It took {time.time() - start} seconds to run search function")
     result_dict = dict()
     removed_links = 0
     for i in range(len(result)):
