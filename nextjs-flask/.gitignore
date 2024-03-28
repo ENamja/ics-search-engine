@@ -7,7 +7,7 @@
 /env
 
 # temp 
-/tmp
+*tmp
 
 # testing
 /coverage

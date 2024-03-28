@@ -1,11 +1,13 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from dotenv import load_dotenv
-import aioredis
+import redis.asyncio as redis
 import asyncio
 import os
 import string
 import time
+import math
+import functools
 from collections import defaultdict
 
 import nltk
@@ -29,7 +31,7 @@ STEMMER = Stemmer()
 
 SEARCH_CUTOFF = 10
 
-pool = None
+r = None
 loop = asyncio.get_event_loop()
 
 load_dotenv("..")
@@ -41,40 +43,53 @@ CORS(app)
 def zero_list():
     return [0, 0]
 
-async def retrieve_word_info(word, words_info):
-    r = aioredis.Redis(connection_pool=pool)
+async def retrieve_word_info(word):
     word = STEMMER.stem(word)
-
+    word_dict = dict()
     urls = await r.smembers(f"word:{word}") # Get urls for word
     urls = list(urls)
-    word_dict = dict()
-    pipe = r.pipeline()
-    for i in range(len(urls)): # Process metadata through pipeline
-        urls[i] = urls[i].decode('utf-8')
-        pipe.lrange(f"metadata:{word}:{urls[i]}", 0, -1)
+    tasks = []
+    n = 500
+    for i in range(math.ceil(len(urls) / n)):
+        sub = urls[i * n:(i + 1) * n]
+        pipe = r.pipeline(transaction=False)
+        for i in range(len(sub)):
+            pipe.lrange(f"metadata:{word}:{urls[i].decode('utf-8')}", 0, -1)
+        tasks.append(pipe.execute())
     start = time.time()
-    metadata_list = await pipe.execute()
-    print(f"It took {time.time() - start} seconds to run pipe function in retrive_word_info for word: {word}")
+    raw = await asyncio.gather(*tasks)
+    metadata_list = functools.reduce(lambda x, y: x+y, raw)
+    print(f"It took {time.time() - start} seconds to run pipe function in retrieve_word_info for word: {word} for {len(urls)} commands")
     for i in range(len(urls)):
-        metadata = metadata_list[i]
-        url = urls[i]
-        metadata[0] = int(metadata[0].decode('utf-8')) 
-        metadata[1] = float(metadata[1].decode('utf-8'))
-        word_dict[url] = metadata
-    words_info[word] = word_dict
+        metadata_list[i][0] = int(metadata_list[i][0].decode('utf-8')) 
+        metadata_list[i][1] = float(metadata_list[i][1].decode('utf-8'))
+        word_dict[urls[i]] = metadata_list[i]
+    return word_dict
 
-async def init_words_info(args, words_info):
+async def init_words_info(args):
+    words_info = dict()
     tasks = []
     for word in args:
-        tasks.append(retrieve_word_info(word, words_info))
-    await asyncio.gather(*tasks)
+        tasks.append(retrieve_word_info(word))
+    list_of_word_dicts = await asyncio.gather(*tasks)
+    for i in range(len(args)):
+        words_info[args[i]] = list_of_word_dicts[i]
+    return words_info
 
 async def add_titles(relevant_urls):
-    r = aioredis.Redis(connection_pool=pool)
-    pipe = r.pipeline()
+    tasks = []
+    n = 500
     for i in range(len(relevant_urls)):
-        pipe.get(f"title:{relevant_urls[i]}")
-    titles = await pipe.execute()
+        relevant_urls[i] = relevant_urls[i].decode('utf-8')
+    for i in range(math.ceil(len(relevant_urls) / n)):
+        sub = relevant_urls[i * n:(i + 1) * n]
+        pipe = r.pipeline(transaction=False)
+        for i in range(len(sub)):
+            pipe.get(f"title:{relevant_urls[i]}")
+        tasks.append(pipe.execute())
+    start = time.time()
+    titles = functools.reduce(lambda x, y: x+y, await asyncio.gather(*tasks))
+    print(f"TOOK THIS LONG TO GET TITLES: {time.time() - start}")
     for i in range(len(relevant_urls)):
         relevant_urls[i] = (relevant_urls[i], titles[i].decode('utf-8'))
 
@@ -134,9 +149,7 @@ async def remove_least_relevant_words_info(words_info):
     args = list(words_info.keys())
     args.remove(least_relevant_word)
 
-    words_info = dict()
-    await init_words_info(args, words_info)
-    return words_info
+    return await init_words_info(args)
 
 
 async def autocorrect_words_info(words_info):
@@ -151,9 +164,7 @@ async def autocorrect_words_info(words_info):
         ]
         args.append(sorted(temp, key=lambda val: val[0])[0][1])
 
-    words_info = dict()
-    await init_words_info(args, words_info)
-    return words_info
+    return await init_words_info(args)
 
 
 async def get_keywords_words_info(words_info):
@@ -163,9 +174,7 @@ async def get_keywords_words_info(words_info):
     keyword_extracted = rake_nltk_var.get_ranked_phrases()
     args = [word for keyword in keyword_extracted for word in keyword.split()]
     
-    words_info = dict()
-    await init_words_info(args, words_info)
-    return words_info
+    return await init_words_info(args)
 
 
 async def sort_relevant(words_info):  # sort relevance of url by highest tfidf score
@@ -175,21 +184,30 @@ async def sort_relevant(words_info):  # sort relevance of url by highest tfidf s
 
     # SECOND screen - extract keywords
     if len(url_scores_list) < SEARCH_CUTOFF:
+        prev = len(url_scores_list)
         words_info = await get_keywords_words_info(words_info)
         print("2nd screen: " + str(list(words_info.keys())))
-        url_scores_list = calc_new_url_scores(url_scores_list, words_info)
+        new_urls = calc_new_url_scores(url_scores_list, words_info)
+        if len(new_urls) > prev:
+            url_scores_list = new_urls
 
     # THIRD screen - autocorrect words
     if len(url_scores_list) < SEARCH_CUTOFF:
+        prev = len(url_scores_list)
         words_info = await autocorrect_words_info(words_info)
         print("3rd screen: " + str(list(words_info.keys())))
-        url_scores_list = calc_new_url_scores(url_scores_list, words_info)
+        new_urls = calc_new_url_scores(url_scores_list, words_info)
+        if len(new_urls) > prev:
+            url_scores_list = new_urls
 
     # FOURTH screen - remove least relevant tfidf score (often misinterpreted autocorrect)
     if len(url_scores_list) < SEARCH_CUTOFF and len(words_info) > 1:
+        prev = len(url_scores_list)
         words_info = await remove_least_relevant_words_info(words_info)
         print("4th screen: " + str(list(words_info.keys())))
-        url_scores_list = calc_new_url_scores(url_scores_list, words_info)
+        new_urls = calc_new_url_scores(url_scores_list, words_info)
+        if len(new_urls) > prev:
+            url_scores_list = new_urls
 
     return url_scores_list
 
@@ -197,14 +215,13 @@ async def search(args):
     for i in range(len(args)):  # lowercase all words
         args[i] = args[i].lower()
 
-    global pool
-    pool = aioredis.ConnectionPool.from_url(os.environ["REDIS_URL"])
+    global r
+    r = redis.Redis.from_url(os.environ["REDIS_URL"])
 
     # FIRST SCREEN - remove single characters
     args = list(filter(lambda x: len(x) > 1, args))
-    words_info = dict()
     start = time.time()
-    await init_words_info(args, words_info)
+    words_info = await init_words_info(args)
     print(f"It took {time.time() - start} seconds to run init_words_info function in search")
 
     start = time.time()
@@ -241,3 +258,8 @@ def return_home():
 
 if __name__ == "__main__":
     app.run()
+    # res = asyncio.run(redis_get("test"))
+    # print(res)
+    # print(res.read())
+    # print(res.url)
+    # urls = loop.run_until_complete(add_titles(set()))
