@@ -49,7 +49,7 @@ async def retrieve_word_info(word):
     urls = await r.smembers(f"word:{word}") # Get urls for word
     urls = list(urls)
     tasks = []
-    n = 500
+    n = 1000
     for i in range(math.ceil(len(urls) / n)):
         sub = urls[i * n:(i + 1) * n]
         pipe = r.pipeline(transaction=False)
@@ -59,7 +59,7 @@ async def retrieve_word_info(word):
     start = time.time()
     raw = await asyncio.gather(*tasks)
     metadata_list = functools.reduce(lambda x, y: x+y, raw)
-    print(f"It took {time.time() - start} seconds to run pipe function in retrieve_word_info for word: {word} for {len(urls)} commands")
+    # print(f"It took {time.time() - start} seconds to run pipe function in retrieve_word_info for word: {word} for {len(urls)} commands")
     for i in range(len(urls)):
         metadata_list[i][0] = int(metadata_list[i][0].decode('utf-8')) 
         metadata_list[i][1] = float(metadata_list[i][1].decode('utf-8'))
@@ -89,7 +89,7 @@ async def add_titles(relevant_urls):
         tasks.append(pipe.execute())
     start = time.time()
     titles = functools.reduce(lambda x, y: x+y, await asyncio.gather(*tasks))
-    print(f"TOOK THIS LONG TO GET TITLES: {time.time() - start}")
+    # print(f"TOOK THIS LONG TO GET TITLES: {time.time() - start}")
     for i in range(len(relevant_urls)):
         relevant_urls[i] = (relevant_urls[i], titles[i].decode('utf-8'))
 
@@ -216,20 +216,20 @@ async def search(args):
         args[i] = args[i].lower()
 
     global r
-    r = redis.Redis.from_url(os.environ["REDIS_URL"])
+    r = redis.Redis(host=os.environ["REDIS_HOST"], port=os.environ["REDIS_PORT"], password=os.environ["REDIS_PASS"])
 
     # FIRST SCREEN - remove single characters
     args = list(filter(lambda x: len(x) > 1, args))
     start = time.time()
     words_info = await init_words_info(args)
-    print(f"It took {time.time() - start} seconds to run init_words_info function in search")
+    # print(f"It took {time.time() - start} seconds to run init_words_info function in search")
 
     start = time.time()
     relevant_urls = await sort_relevant(words_info)
-    print(f"It took {time.time() - start} seconds to run sort_relevant function in search")
+    # print(f"It took {time.time() - start} seconds to run sort_relevant function in search")
     start = time.time()
     await add_titles(relevant_urls)
-    print(f"It took {time.time() - start} seconds to run add_titles function in search")
+    # print(f"It took {time.time() - start} seconds to run add_titles function in search")
 
     for i, url in enumerate(relevant_urls[:SEARCH_CUTOFF]):
         print(f"{i + 1}: {url[0]}, {url[1]}")
@@ -243,7 +243,7 @@ def return_home():
     length = int(request.args.getlist("length")[0])
     start = time.time()
     result = loop.run_until_complete(search(query_params))
-    print(f"It took {time.time() - start} seconds to run search function")
+    # print(f"It took {time.time() - start} seconds to run search function")
     result_dict = dict()
     removed_links = 0
     for i in range(len(result)):
@@ -258,8 +258,3 @@ def return_home():
 
 if __name__ == "__main__":
     app.run()
-    # res = asyncio.run(redis_get("test"))
-    # print(res)
-    # print(res.read())
-    # print(res.url)
-    # urls = loop.run_until_complete(add_titles(set()))
