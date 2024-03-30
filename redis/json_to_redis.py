@@ -1,22 +1,26 @@
 from dotenv import load_dotenv
-import redis
+import redis.asyncio as redis
+import asyncio
 import os
 import json
 
 # Convert inverted index and store on redis db hosted on local machine
 
-def main():
+async def main():
 
   INDEX_PATH="inverted_index/"
 
   load_dotenv()
 
-  r = redis.Redis(host="localhost", port=6379, decode_responses=True)
+  r = redis.Redis(host=os.environ["REDIS_HOST"], port=os.environ["REDIS_PORT"], password=os.environ["REDIS_PASS"], decode_responses=True)
 
   r.ping()
   print("connected to redis")
 
   counter = 0
+  num_keys = 0
+  pipe = r.pipeline()
+  tasks = []
   for filename in os.listdir(INDEX_PATH):
     with open(f"{INDEX_PATH}{filename}") as file:
       print(f"file: {filename}, counter: {counter}")
@@ -27,10 +31,19 @@ def main():
         if len(keys):
           for key in keys:
             url, title = key.split(" <%split%> ", 1)
-            r.setnx(f"title:{url}", title)
-            r.sadd(f"word:{word}", url)
+            pipe.setnx(f"title:{url}", title)
+            pipe.sadd(f"word:{word}", url)
             _, _, important, tfidf = two_dict[word][key]
-            r.rpush(f"metadata:{word}:{url}", important, tfidf)
+            pipe.rpush(f"metadata:{word}:{url}", important, tfidf)
+            num_keys += 1
+            if num_keys % 1000 == 999:
+              tasks.append(pipe.execute())
+              pipe = r.pipeline()
+              if len(tasks) >= 10:
+                await asyncio.gather(*tasks)
+                tasks = []
+  tasks.append(pipe.execute())
+  await asyncio.gather(*tasks)
 
 if __name__ == "__main__":
-  main()
+  asyncio.run(main())
