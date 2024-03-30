@@ -43,6 +43,19 @@ CORS(app)
 def zero_list():
     return [0, 0]
 
+async def get_metadata(word, urls):
+    pipe = r.pipeline(transaction=False)
+    for i in range(len(urls)):
+        pipe.lrange(f"metadata:{word}:{urls[i].decode('utf-8')}", 0, -1)
+    metadata_list = await pipe.execute()
+    info_dict = dict()
+    for i in range(len(urls)):
+        metadata = metadata_list[i]
+        metadata[0] = int(metadata[0].decode('utf-8'))
+        metadata[1] = float(metadata[1].decode('utf-8'))
+        info_dict[urls[i].decode('utf-8')] = metadata
+    return info_dict
+
 async def retrieve_word_info(word):
     word = STEMMER.stem(word)
     word_dict = dict()
@@ -52,18 +65,12 @@ async def retrieve_word_info(word):
     n = 1000
     for i in range(math.ceil(len(urls) / n)):
         sub = urls[i * n:(i + 1) * n]
-        pipe = r.pipeline(transaction=False)
-        for i in range(len(sub)):
-            pipe.lrange(f"metadata:{word}:{urls[i].decode('utf-8')}", 0, -1)
-        tasks.append(pipe.execute())
-    start = time.time()
-    raw = await asyncio.gather(*tasks)
-    metadata_list = functools.reduce(lambda x, y: x+y, raw)
+        tasks.append(get_metadata(word, sub))
+    # start = time.time()
+    metadata_dicts = await asyncio.gather(*tasks)
     # print(f"It took {time.time() - start} seconds to run pipe function in retrieve_word_info for word: {word} for {len(urls)} commands")
-    for i in range(len(urls)):
-        metadata_list[i][0] = int(metadata_list[i][0].decode('utf-8')) 
-        metadata_list[i][1] = float(metadata_list[i][1].decode('utf-8'))
-        word_dict[urls[i]] = metadata_list[i]
+    for metadata_dict in metadata_dicts:
+        word_dict.update(metadata_dict)
     return word_dict
 
 async def init_words_info(args):
@@ -79,8 +86,6 @@ async def init_words_info(args):
 async def add_titles(relevant_urls):
     tasks = []
     n = 500
-    for i in range(len(relevant_urls)):
-        relevant_urls[i] = relevant_urls[i].decode('utf-8')
     for i in range(math.ceil(len(relevant_urls) / n)):
         sub = relevant_urls[i * n:(i + 1) * n]
         pipe = r.pipeline(transaction=False)
